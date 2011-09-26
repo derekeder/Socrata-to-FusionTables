@@ -1,0 +1,15 @@
+Socrata to Fusion Tables by Derek Eder
+9/26/2011
+
+This script pulls from Chicago's Socrata instance and inserts it in to Google Fusion Tables. This code is far from generic. To use it, you will need to add your connection info to /source/connectioninfo.php.
+
+Also, you will need to do your own custom datamapping from Socrata to your Fusion Table. I've kept mine in here as an example.
+  	
+Connecting to Socrata with a library by Chris Metcalf
+https://github.com/socrata/socrata-php
+
+Connecting to Fusion Tables with a library by kbris...@google.com
+http://code.google.com/p/fusion-tables-client-php/
+
+Source: http://data.cityofchicago.org/Service-Requests/311-Service-Requests-Vacant-and-Abandoned-Building/7nii-7srd
+Destination: http://www.google.com/fusiontables/DataSource?dsrcid=1614852 
