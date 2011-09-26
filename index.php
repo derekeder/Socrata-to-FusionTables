@@ -2,6 +2,7 @@
   //see README for instructions
 
   ini_set("memory_limit","80M"); //datasets we are dealing with can be quite large, need enough space in memory
+  set_time_limit(0); //remove timout limitation - WARNING if you are dealing with large datasets, this page will run until it is out of memory (see line above)
   
   //pulling from Socrata with https://github.com/socrata/socrata-php
   include("source/socrata.php");
@@ -30,8 +31,7 @@
     $socrata = new Socrata("http://$data_site/api", $app_token);
 
     $params = array();
-    if (ConnectionInfo::$max_rows > 0)
-    	$params["max_rows"] = ConnectionInfo::$max_rows; //max number of rows to fetch
+    //$params["max_rows"] = 10; //max number of rows to fetch
 
     // Request rows from Socrata
     $response = $socrata->get("/views/$view_uid/rows.json", $params);
@@ -54,8 +54,16 @@
 	
 	//this part is very custom to this particular dataset. If you are using this, here's where the bulk of your work would be: data mapping!
 	$ftResponse = $ftclient->query(SQLBuilder::select($fusionTableId, "'DATE RECEIVED'", "", "'DATE RECEIVED' DESC", "1"));
-	$latestInsert = new DateTime(str_replace("DATE RECEIVED", "", $ftResponse)); //totally a hack. there's a better way to do this
-    echo "\nLatest FT insert: " . $latestInsert->format('m/d/Y') . "\n";
+	//$latestInsert = new DateTime("1/1/2001");
+	$ftResponse = trim(str_replace("DATE RECEIVED", "", $ftResponse)); //totally a hack. there's a better way to do this
+	
+	//big assumption: socrata will return the data ordered by date. this may not always be the case
+	if ($ftResponse != "")
+		$latestInsert = new DateTime(str_replace("DATE RECEIVED", "", $ftResponse));   
+	else
+		$latestInsert = new DateTime("1/1/2001"); //if there are no rows, set it to an early date so we import everything
+	  
+	echo "\nLatest FT insert: " . $latestInsert->format('m/d/Y') . "\n";
 
 	$insertCount = 0;
     foreach($response["data"] as $row) {
@@ -65,7 +73,7 @@
     		$receivedDate = new DateTime($row[10]);
     		
     		//creating full address column for geocoding
-    		$fullAddress = $row[18] . " " . $row[19] . " " . $row[20] . " " . $row[21] . " " . $row[22];
+    		$fullAddress = $row[18] . " " . $row[19] . " " . $row[20] . " " . $row[21] . " chicago IL " . $row[22];
     		
     		//todo add flag columns and do conversion using SQLBuilder::convertToFlag()
     		
@@ -75,11 +83,16 @@
 		    	"DATE RECEIVED" => $receivedDate->format('m/d/Y'),
 		    	"LOT LOCATION" => $row[11],
 		    	"DANGEROUS OR HAZARDOUS?" => $row[12], //this column appears to be empty
+		    	"Dangerous flag" => SQLBuilder::convertToFlag($row[12], "dangerous"),
 		    	"OPEN OR BOARDED?" => $row[13],
+		    	"Open flag" => SQLBuilder::convertToFlag($row[13], "open"),
 		    	"ENTRY POINT" => $row[14],
 		    	"VACANT OR OCCUPIED?" => $row[15],
+		    	"Vacant flag" => SQLBuilder::convertToFlag($row[15], "vacant"),
 		    	"VACANT DUE TO FIRE?" => $row[16],
+		    	"Fire flag" => SQLBuilder::setEmptyToZero($row[16]), //stored as an int in Socrata
 		    	"ANY PEOPLE USING PROPERTY?" => $row[17],
+		    	"In use flag" => SQLBuilder::setEmptyToZero($row[17]), //stored as an int in Socrata
 		    	"ADDRESS STREET NUMBER" => $row[18],
 		    	"ADDRESS STREET DIRECTION" => $row[19],
 		    	"ADDRESS STREET NAME" => $row[20],
