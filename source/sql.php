@@ -92,7 +92,7 @@ class SQLBuilder {
     $cols = "'" . implode("','", array_keys($col_values)) . "'";
     
     $insertSql = "INSERT INTO $table_id ($cols) VALUES ($stringValues)";
-    echo "\n" . $insertSql . "\n";
+    //echo "\n" . $insertSql . "\n";
     return $insertSql;
   }
   

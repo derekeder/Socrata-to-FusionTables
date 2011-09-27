@@ -1,21 +1,25 @@
 <?php
   //see README for instructions
-
-  ini_set("memory_limit","80M"); //datasets we are dealing with can be quite large, need enough space in memory
-  set_time_limit(0); //remove timout limitation - WARNING if you are dealing with large datasets, this page will run until it is out of memory (see line above)
+  error_reporting(E_ALL);
+  ini_set("memory_limit","200M"); //datasets we are dealing with can be quite large, need enough space in memory
+  set_time_limit(0);
+  date_default_timezone_set('America/Chicago');
   
   //pulling from Socrata with https://github.com/socrata/socrata-php
-  include("source/socrata.php");
+  require("source/socrata.php");
   
   //inserting in to Fusion Tables with http://code.google.com/p/fusion-tables-client-php/
-  include('source/clientlogin.php');
-  include('source/sql.php');
-  include('source/file.php'); //not being used, but could be useful to someone automating CSV import in to FT
+  require('source/clientlogin.php');
+  require('source/sql.php');
+  require('source/file.php'); //not being used, but could be useful to someone automating CSV import in to FT
   
   //my custom libraries
-  include('source/connectioninfo.php');
+  require('source/connectioninfo.php');
   
   header('Content-type: text/plain');
+
+  //keep track of script execution time
+  $bgtime=time();
 
   $view_uid = ConnectionInfo::$view_uid;
   $data_site = ConnectionInfo::$data_site;
@@ -23,6 +27,7 @@
   $fusionTableId = ConnectionInfo::$fusionTableId;
   
   echo "Socrata -> Fusion Tables import by Derek Eder\n\n";
+  echo "app token: $app_token \n";
   
   //Fetch data from Socrata
   $response = NULL;
@@ -31,7 +36,7 @@
     $socrata = new Socrata("http://$data_site/api", $app_token);
 
     $params = array();
-    //$params["max_rows"] = 10; //max number of rows to fetch
+    //$params["max_rows"] = 1; //max number of rows to fetch
 
     // Request rows from Socrata
     $response = $socrata->get("/views/$view_uid/rows.json", $params);
@@ -52,9 +57,15 @@
 	$token = ClientLogin::getAuthToken(ConnectionInfo::$google_username, ConnectionInfo::$google_password);
 	$ftclient = new FTClientLogin($token);
 	
+	//for clearing out table
+	//$ftclient->query("DELETE FROM $fusionTableId");
+	
+	//check how many are in Fusion Tables already
+	$ftResponse = $ftclient->query("SELECT Count() FROM $fusionTableId");
+	echo "$ftResponse \n";
+	
 	//this part is very custom to this particular dataset. If you are using this, here's where the bulk of your work would be: data mapping!
 	$ftResponse = $ftclient->query(SQLBuilder::select($fusionTableId, "'DATE RECEIVED'", "", "'DATE RECEIVED' DESC", "1"));
-	//$latestInsert = new DateTime("1/1/2001");
 	$ftResponse = trim(str_replace("DATE RECEIVED", "", $ftResponse)); //totally a hack. there's a better way to do this
 	
 	//big assumption: socrata will return the data ordered by date. this may not always be the case
@@ -103,15 +114,17 @@
 		    	"Y COORDINATE" => $row[24],
 		    	"LATITUDE" => $row[25],
 		    	"LONGITUDE" => $row[26],
-		    	"Location" => $row[27]
+		    	"Location" => "(" . implode(",", $row[27]) . ")"
 		    	);
 		    
 		    	$ftclient->query(SQLBuilder::insert($fusionTableId, $insertArray));
 		    	$insertCount++;
+		    	echo "inserted $insertCount so far\n";
 		    }
     	}
     }
   }
   echo "\ninserted $insertCount rows\n";
+  echo "This script ran in " . (time()-$bgtime) . " seconds\n";
   echo "\nDone.\n";
 ?>

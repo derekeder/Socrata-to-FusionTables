@@ -7,7 +7,8 @@ class ClientLogin {
     curl_setopt($clientlogin_curl, CURLOPT_POST, true); 
     curl_setopt ($clientlogin_curl, CURLOPT_POSTFIELDS,
 	    "Email=".$username."&Passwd=".$password."&service=fusiontables&accountType=GOOGLE");
-    curl_setopt($clientlogin_curl,CURLOPT_CONNECTTIMEOUT,2);
+    curl_setopt($clientlogin_curl,CURLOPT_CONNECTTIMEOUT,30);
+    curl_setopt($clientlogin_curl,CURLOPT_TIMEOUT,30);
     curl_setopt($clientlogin_curl,CURLOPT_RETURNTRANSFER,1);
     $token = curl_exec($clientlogin_curl);
     curl_close($clientlogin_curl);

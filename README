@@ -13,3 +13,7 @@ http://code.google.com/p/fusion-tables-client-php/
 
 Source: http://data.cityofchicago.org/Service-Requests/311-Service-Requests-Vacant-and-Abandoned-Building/7nii-7srd
 Destination: http://www.google.com/fusiontables/DataSource?dsrcid=1614852 
+
+usage
+1. fill in your connection and Google account info in connection info.php
+2. $ php run_import.php
