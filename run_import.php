@@ -23,7 +23,7 @@
 
   $view_uid = ConnectionInfo::$view_uid;
   $data_site = ConnectionInfo::$data_site;
-  $app_token = ConnectionInfo::$app_token;
+  $app_token = ConnectionInfo::$app_tokenn;
   $fusionTableId = ConnectionInfo::$fusionTableId;
   
   echo "Socrata -> Fusion Tables import by Derek Eder\n\n";
