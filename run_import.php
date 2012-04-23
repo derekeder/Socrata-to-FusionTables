@@ -1,7 +1,7 @@
 <?php
   //see README for instructions
   error_reporting(E_ALL);
-  ini_set("memory_limit","200M"); //datasets we are dealing with can be quite large, need enough space in memory
+  ini_set("memory_limit","300M"); //datasets we are dealing with can be quite large, need enough space in memory
   set_time_limit(0);
   date_default_timezone_set('America/Chicago');
   
@@ -52,31 +52,35 @@
     }
     
     //Fetch info from Fusion Tables and do inserts & data manipulation
-    echo "\n----Inserting in to Fusion Tables----\n";
+    echo "\n----Dumping to CSV----\n";
     //get token
-	$token = ClientLogin::getAuthToken(ConnectionInfo::$google_username, ConnectionInfo::$google_password);
-	$ftclient = new FTClientLogin($token);
+	//$token = ClientLogin::getAuthToken(ConnectionInfo::$google_username, ConnectionInfo::$google_password);
+	//$ftclient = new FTClientLogin($token);
 	
 	//for clearing out table
 	//$ftclient->query("DELETE FROM $fusionTableId");
 	
 	//check how many are in Fusion Tables already
-	$ftResponse = $ftclient->query("SELECT Count() FROM $fusionTableId");
-	echo "$ftResponse \n";
+	//$ftResponse = $ftclient->query("SELECT Count() FROM $fusionTableId");
+	//echo "$ftResponse \n";
 	
 	//this part is very custom to this particular dataset. If you are using this, here's where the bulk of your work would be: data mapping!
-	$ftResponse = $ftclient->query(SQLBuilder::select($fusionTableId, "'DATE RECEIVED'", "", "'DATE RECEIVED' DESC", "1"));
-	$ftResponse = trim(str_replace("DATE RECEIVED", "", $ftResponse)); //totally a hack. there's a better way to do this
+	//$ftResponse = $ftclient->query(SQLBuilder::select($fusionTableId, "'DATE RECEIVED'", "", "'DATE RECEIVED' DESC", "1"));
+	//$ftResponse = trim(str_replace("DATE RECEIVED", "", $ftResponse)); //totally a hack. there's a better way to do this
 	
 	//big assumption: socrata will return the data ordered by date. this may not always be the case
-	if ($ftResponse != "")
-		$latestInsert = new DateTime(str_replace("DATE RECEIVED", "", $ftResponse));   
-	else
-		$latestInsert = new DateTime("1/1/2001"); //if there are no rows, set it to an early date so we import everything
+	//if ($ftResponse != "")
+	//	$latestInsert = new DateTime(str_replace("DATE RECEIVED", "", $ftResponse));   
+	//else
+	//	$latestInsert = new DateTime("1/1/2100"); //if there are no rows, set it to an early date so we import everything
 	  
-	echo "\nLatest FT insert: " . $latestInsert->format('m/d/Y') . "\n";
+	//echo "\nLatest FT insert: " . $latestInsert->format('m/d/Y') . "\n";
+	
+	//Saving all results to CSV and doing a full replace in Fusion Tables
+	$fp = fopen('vacant_buildings.csv', 'w+');
 
 	$insertCount = 0;
+	$addresss = array();
     foreach($response["data"] as $row) {
     	if ($row[9] != "SERVICE REQUEST #") { //first row in this dataset is a duplicate of the column names
     		
@@ -86,9 +90,7 @@
     		//creating full address column for geocoding
     		$fullAddress = $row[18] . " " . $row[19] . " " . $row[20] . " " . $row[21] . " chicago IL " . $row[22];
     		
-    		//todo add flag columns and do conversion using SQLBuilder::convertToFlag()
-    		
-    		if ($receivedDate > $latestInsert) {
+    		//if ($receivedDate > $latestInsert) {
 		    	$insertArray = array(
 		    	"SERVICE REQUEST #" => $row[9],
 		    	"DATE RECEIVED" => $receivedDate->format('m/d/Y'),
@@ -114,13 +116,17 @@
 		    	"Y COORDINATE" => $row[24],
 		    	"LATITUDE" => $row[25],
 		    	"LONGITUDE" => $row[26],
-		    	"Location" => "(" . implode(",", $row[27]) . ")"
+		    	"Location" => "$row[25],$row[26]"
 		    	);
 		    
-		    	$ftclient->query(SQLBuilder::insert($fusionTableId, $insertArray));
-		    	$insertCount++;
-		    	echo "inserted $insertCount so far\n";
-		    }
+		      if (!in_array($fullAddress, $addresss)) {
+		    	  //$ftclient->query(SQLBuilder::insert($fusionTableId, $insertArray));
+		    	  fputcsv($fp, $insertArray); //dumping everything to a CSV and doing a full replace for now
+		    	  array_push($addresss, $fullAddress);
+		    	  $insertCount++;
+		    	  echo "inserted $insertCount so far: $row[10]\n";
+		      }
+		    //}
     	}
     }
   }
