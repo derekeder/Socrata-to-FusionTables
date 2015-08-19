@@ -1,5 +1,6 @@
-Socrata to Fusion Tables by Derek Eder
-9/26/2011
+## Socrata to Fusion Tables by Derek Eder
+
+**This project is deprecated:** Google made some [recent changes to the Fusion Tables API](https://developers.google.com/fusiontables/docs/articles/oauthfusiontables) that broke this code, and I'm no longer maintaining it. You might want to check out [csv-to-html-table](https://github.com/derekeder/csv-to-html-table) instead.
 
 This script pulls from Chicago's Socrata instance and inserts it in to Google Fusion Tables. This code is far from generic. To use it, you will need to add your connection info for Google and Socrata. 
 
